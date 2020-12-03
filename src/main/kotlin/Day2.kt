@@ -1028,5 +1028,5 @@ object Day2 {
         )
     }
 
-    private fun String.safeGet(p: Int): Char = if (length > p) this[p] else '-';
+    private fun String.safeGet(p: Int): Char = if (length > p) this[p] else '-'
 }
