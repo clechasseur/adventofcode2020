@@ -47,7 +47,7 @@ class AdventOfCode2020 {
 
         @Test
         fun `day 4, part 2`() {
-            assertEquals(0, Day4.part2())
+            assertEquals(172, Day4.part2())
         }
     }
 
@@ -59,7 +59,7 @@ class AdventOfCode2020 {
 
         @Test
         fun `day 5, part 2`() {
-            assertEquals(0, Day5.part2())
+            assertEquals(619, Day5.part2())
         }
     }
 
@@ -72,6 +72,18 @@ class AdventOfCode2020 {
         @Test
         fun `day 6, part 2`() {
             assertEquals(3570, Day6.part2())
+        }
+    }
+
+    class Day7Puzzles {
+        @Test
+        fun `day 7, part 1`() {
+            assertEquals(287, Day7.part1())
+        }
+
+        @Test
+        fun `day 7, part 2`() {
+            assertEquals(48_160, Day7.part2())
         }
     }
 }
