@@ -1,5 +1,3 @@
-import kotlin.math.pow
-
 object Day10 {
     private val input = listOf(
         47,
@@ -106,7 +104,28 @@ object Day10 {
 
     fun part2(): Long {
         val chain = listOf(0) + input.sorted() + listOf(input.max()!! + 3)
-        val jmp1 = chain.zipWithNext().filter { (i1, i2) -> i2 - i1 == 1 }.count()
-        return 2.0.pow(jmp1).toLong()
+        var total = 1L
+        val curPart = mutableListOf<Int>()
+        chain.forEach { a ->
+            if (curPart.isEmpty() || a - curPart.last() < 3) {
+                curPart.add(a)
+            } else {
+                total *= combinations(curPart)
+                curPart.clear()
+                curPart.add(a)
+            }
+        }
+        return total
+    }
+
+    private fun combinations(chain: List<Int>): Long {
+        if (chain.size <= 1) {
+            return 1L
+        }
+        val next = chain.first()
+        val thens = chain.drop(1).takeWhile { it - next <= 3 }
+        return thens.map { then ->
+            combinations(chain.dropWhile { it < then })
+        }.sum()
     }
 }

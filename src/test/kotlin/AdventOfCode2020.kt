@@ -119,7 +119,7 @@ class AdventOfCode2020 {
 
         @Test
         fun `day 10, part 2`() {
-            assertEquals(0L, Day10.part2())
+            assertEquals(8_099_130_339_328L, Day10.part2())
         }
     }
 }
