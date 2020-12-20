@@ -13,6 +13,8 @@ data class Pt(val x: Int, val y: Int) : Comparable<Pt> {
 
     operator fun plus(pt: Pt) = Pt(x + pt.x, y + pt.y)
     operator fun minus(pt: Pt) = Pt(x - pt.x, y - pt.y)
+
+    operator fun times(value: Int) = Pt(x * value, y * value)
 }
 
 fun manhattan(a: Pt, b: Pt): Int = abs(a.x - b.x) + abs(a.y - b.y)
