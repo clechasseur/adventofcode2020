@@ -10,18 +10,18 @@ object Day13 {
     }
 
     fun part2(): Long {
-        val seqs = input_bus_ids.map { id -> if (id != 0) busSequence(id).iterator() else null }
         val cur = MutableList(input_bus_ids.size) { 0L }
         while (true) {
-            cur[0] = seqs[0]!!.next()
+            cur[0] += input_bus_ids[0].toLong()
             var match = true
-            cur.indices.drop(1).forEach { pos ->
-                if (seqs[pos] != null) {
-                    while (cur[pos] <= cur[0]) {
-                        cur[0] = seqs[pos]!!.next()
-                    }
-                    match = match && cur[pos] - pos == cur[0]
+            for (i in cur.indices) {
+                if (i == 0 || input_bus_ids[i] == 0) {
+                    continue
                 }
+                while (cur[i] - i < cur[0]) {
+                    cur[i] += input_bus_ids[i].toLong()
+                }
+                match = match && cur[i] - i == cur[0]
             }
             if (match) {
                 return cur[0]
