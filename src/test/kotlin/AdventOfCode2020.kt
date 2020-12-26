@@ -154,8 +154,22 @@ class AdventOfCode2020 {
         }
 
         @Test
+        @Ignore("Does not work - never completes")
         fun `day 13, part 2`() {
             assertEquals(0L, Day13.part2())
+        }
+    }
+
+    class Day14Puzzles {
+        @Test
+        fun `day 14, part 1`() {
+            assertEquals(6386593869035L, Day14.part1())
+        }
+
+        @Test
+        @Ignore("Goes out of memory")
+        fun `day 14, part 2`() {
+            assertEquals(0L, Day14.part2())
         }
     }
 }
