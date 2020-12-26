@@ -582,13 +582,6 @@ object Day14 {
         mem[21212] = 870451788
     """.trimIndent()
 
-    private val testInput = """
-        mask = 000000000000000000000000000000X1001X
-        mem[42] = 100
-        mask = 00000000000000000000000000000000X0XX
-        mem[26] = 1
-    """.trimIndent()
-
     private val maskRegex = """^mask = ((?:0|1|X){36})$""".toRegex()
     private val assignRegex = """^mem\[(\d+)] = (\d+)$""".toRegex()
 
@@ -601,9 +594,9 @@ object Day14 {
 
     fun part2(): Long {
         val cpu = Computer2()
-        val program = testInput.lineSequence().map { it.toInstruction2() }
+        val program = input.lineSequence().map { it.toInstruction2() }
         program.forEach { it(cpu) }
-        return cpu.ram.values.map { it.sumOfValues }.sum()
+        return cpu.ram.values.sum()
     }
 
     private class Computer {
@@ -664,27 +657,10 @@ object Day14 {
         constructor(mask: FloatingMask) : this(0L, mask)
     }
 
-    private data class MemoryBlock2(val base: Long, val mask: FloatingMask) {
-        val sumOfValues: Long
-            get() {
-                var sum = 0L
-                var i = FloatingValue(mask)
-                while (true) {
-                    sum += base + i.longValue
-                    if (i.longValue < mask.maxValue) {
-                        i = i.next
-                    } else {
-                        break
-                    }
-                }
-                return sum
-            }
-    }
-
     private class Computer2 {
         var yesMask = 0L
         var floatMask: FloatingMask? = null
-        val ram = mutableMapOf<Long, MemoryBlock2>()
+        val ram = mutableMapOf<Long, Long>()
     }
 
     private interface Instruction2 {
@@ -704,10 +680,15 @@ object Day14 {
     private class Assign2(val address: Long, val value: Long) : Instruction2 {
         override fun invoke(cpu: Computer2) {
             require(cpu.floatMask != null) { "Must have a mask" }
-            cpu.ram[address] = MemoryBlock2(
-                base = (value or cpu.yesMask) and cpu.floatMask!!.maxValue.inv(),
-                mask = cpu.floatMask!!
-            )
+            var addr = FloatingValue(cpu.floatMask!!)
+            while (true) {
+                cpu.ram[((address or cpu.yesMask) and cpu.floatMask!!.maxValue.inv()) + addr.longValue] = value
+                if (addr.longValue < addr.mask.maxValue) {
+                    addr = addr.next
+                } else {
+                    break
+                }
+            }
         }
     }
 
