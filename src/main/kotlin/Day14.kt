@@ -582,6 +582,13 @@ object Day14 {
         mem[21212] = 870451788
     """.trimIndent()
 
+    private val testInput = """
+        mask = 000000000000000000000000000000X1001X
+        mem[42] = 100
+        mask = 00000000000000000000000000000000X0XX
+        mem[26] = 1
+    """.trimIndent()
+
     private val maskRegex = """^mask = ((?:0|1|X){36})$""".toRegex()
     private val assignRegex = """^mem\[(\d+)] = (\d+)$""".toRegex()
 
@@ -594,7 +601,7 @@ object Day14 {
 
     fun part2(): Long {
         val cpu = Computer2()
-        val program = input.lineSequence().map { it.toInstruction2() }
+        val program = testInput.lineSequence().map { it.toInstruction2() }
         program.forEach { it(cpu) }
         return cpu.ram.values.map { it.sumOfValues }.sum()
     }
@@ -637,15 +644,37 @@ object Day14 {
         else -> SetMask(maskMatch.groupValues[1])
     }
 
-    private data class MemoryBlock2(val baseValue: Long, val floatMask: Long) {
+    private class FloatingMask(mask: String) {
+        val bitPos = mask.indices.map { if (mask.reversed()[it] == '1') it else -1 }.filter { it >= 0 }
+        val maxValue = mask.toLong(2)
+    }
+
+    private class FloatingValue(private val bits: Long, val mask: FloatingMask) {
+        val longValue: Long
+            get() = mask.bitPos.indices.map { bitIdx ->
+                if (2.0.pow(bitIdx).toLong() and bits != 0L) 2.0.pow(mask.bitPos[bitIdx]).toLong() else 0L
+            }.sum()
+
+        val next: FloatingValue
+            get() {
+                require(longValue < mask.maxValue) { "Max value reached: $longValue" }
+                return FloatingValue(bits + 1, mask)
+            }
+
+        constructor(mask: FloatingMask) : this(0L, mask)
+    }
+
+    private data class MemoryBlock2(val base: Long, val mask: FloatingMask) {
         val sumOfValues: Long
             get() {
                 var sum = 0L
-                val used = mutableSetOf<Long>()
-                (0..floatMask).map { it and floatMask }.filter { it != 0L }.forEach { mask ->
-                    if (!used.contains(mask)) {
-                        sum += (baseValue and floatMask.inv()) + mask
-                        used.add(mask)
+                var i = FloatingValue(mask)
+                while (true) {
+                    sum += base + i.longValue
+                    if (i.longValue < mask.maxValue) {
+                        i = i.next
+                    } else {
+                        break
                     }
                 }
                 return sum
@@ -654,7 +683,7 @@ object Day14 {
 
     private class Computer2 {
         var yesMask = 0L
-        var floatMask = 0L
+        var floatMask: FloatingMask? = null
         val ram = mutableMapOf<Long, MemoryBlock2>()
     }
 
@@ -664,19 +693,20 @@ object Day14 {
 
     private class SetMask2(mask: String) : Instruction2 {
         private val yesMask = mask.replace('X', '0').toLong(2)
-        private val floatMask = mask.replace("\\d".toRegex(), "0").replace('X', '1').toLong(2)
+        private val floatMask = mask.replace("\\d".toRegex(), "0").replace('X', '1')
 
         override fun invoke(cpu: Computer2) {
             cpu.yesMask = yesMask
-            cpu.floatMask = floatMask
+            cpu.floatMask = FloatingMask(floatMask)
         }
     }
 
     private class Assign2(val address: Long, val value: Long) : Instruction2 {
         override fun invoke(cpu: Computer2) {
+            require(cpu.floatMask != null) { "Must have a mask" }
             cpu.ram[address] = MemoryBlock2(
-                baseValue = value or cpu.yesMask,
-                floatMask = cpu.floatMask
+                base = (value or cpu.yesMask) and cpu.floatMask!!.maxValue.inv(),
+                mask = cpu.floatMask!!
             )
         }
     }

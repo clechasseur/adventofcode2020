@@ -167,7 +167,6 @@ class AdventOfCode2020 {
         }
 
         @Test
-        @Ignore("Still goes out of memory")
         fun `day 14, part 2`() {
             assertEquals(0L, Day14.part2())
         }
