@@ -589,25 +589,24 @@ object Day14 {
         val cpu = Computer()
         val program = input.lineSequence().map { it.toInstruction() }
         program.forEach { it(cpu) }
-        return cpu.ram.values.map { it.sum() }.sum()
+        return cpu.ram.values.sum()
     }
 
     fun part2(): Long {
-        val cpu = Computer()
+        val cpu = Computer2()
         val program = input.lineSequence().map { it.toInstruction2() }
         program.forEach { it(cpu) }
-        return cpu.ram.values.map { it.sum() }.sum()
+        return cpu.ram.values.map { it.sumOfValues }.sum()
     }
 
     private class Computer {
         var yesMask = 0L
         var noMask = 0L
-        var weirdMask = 0L
-        val ram = mutableMapOf<Long, List<Long>>()
+        val ram = mutableMapOf<Long, Long>()
     }
 
     private interface Instruction {
-        operator fun invoke(cpu: Computer): Unit
+        operator fun invoke(cpu: Computer)
     }
 
     private class SetMask(mask: String) : Instruction {
@@ -622,31 +621,7 @@ object Day14 {
 
     private class Assign(val address: Long, val value: Long) : Instruction {
         override fun invoke(cpu: Computer) {
-            cpu.ram[address] = listOf((value or cpu.yesMask) and cpu.noMask)
-        }
-    }
-
-    private class SetMask2(mask: String): Instruction {
-        private val yesMask = mask.replace('X', '0').toLong(2)
-        private val weirdMask = mask.replace("\\d".toRegex(), "0").replace('X', '1').toLong(2)
-
-        override fun invoke(cpu: Computer) {
-            cpu.yesMask = yesMask
-            cpu.weirdMask = weirdMask
-        }
-    }
-
-    private class Assign2(val address: Long, val value: Long) : Instruction {
-        override fun invoke(cpu: Computer) {
-            val baseValue = value or cpu.yesMask
-            cpu.ram[address] = when (cpu.weirdMask) {
-                0L -> listOf(baseValue)
-                else -> {
-                    (0..cpu.weirdMask).map { possible ->
-                        (possible or cpu.weirdMask) + (baseValue and cpu.weirdMask.inv())
-                    }.filter { it != 0L }.toList()
-                }
-            }
+            cpu.ram[address] = (value or cpu.yesMask) and cpu.noMask
         }
     }
 
@@ -662,7 +637,51 @@ object Day14 {
         else -> SetMask(maskMatch.groupValues[1])
     }
 
-    private fun String.toInstruction2(): Instruction = when (val maskMatch = maskRegex.matchEntire(this)) {
+    private data class MemoryBlock2(val baseValue: Long, val floatMask: Long) {
+        val sumOfValues: Long
+            get() {
+                var sum = 0L
+                val used = mutableSetOf<Long>()
+                (0..floatMask).map { it and floatMask }.filter { it != 0L }.forEach { mask ->
+                    if (!used.contains(mask)) {
+                        sum += (baseValue and floatMask.inv()) + mask
+                        used.add(mask)
+                    }
+                }
+                return sum
+            }
+    }
+
+    private class Computer2 {
+        var yesMask = 0L
+        var floatMask = 0L
+        val ram = mutableMapOf<Long, MemoryBlock2>()
+    }
+
+    private interface Instruction2 {
+        operator fun invoke(cpu: Computer2)
+    }
+
+    private class SetMask2(mask: String) : Instruction2 {
+        private val yesMask = mask.replace('X', '0').toLong(2)
+        private val floatMask = mask.replace("\\d".toRegex(), "0").replace('X', '1').toLong(2)
+
+        override fun invoke(cpu: Computer2) {
+            cpu.yesMask = yesMask
+            cpu.floatMask = floatMask
+        }
+    }
+
+    private class Assign2(val address: Long, val value: Long) : Instruction2 {
+        override fun invoke(cpu: Computer2) {
+            cpu.ram[address] = MemoryBlock2(
+                baseValue = value or cpu.yesMask,
+                floatMask = cpu.floatMask
+            )
+        }
+    }
+
+    private fun String.toInstruction2(): Instruction2 = when (val maskMatch = maskRegex.matchEntire(this)) {
         null -> {
             val assignMatch = assignRegex.matchEntire(this)
             require(assignMatch != null) { "Invalid instruction: $this" }
