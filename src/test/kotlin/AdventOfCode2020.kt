@@ -178,9 +178,9 @@ class AdventOfCode2020 {
         }
 
         @Test
-        @Ignore("Too slow")
+        @Ignore("Took about 6 min to run on my machine")
         fun `day 15, part 2`() {
-            assertEquals(0, Day15.part2())
+            assertEquals(6823, Day15.part2())
         }
     }
 }

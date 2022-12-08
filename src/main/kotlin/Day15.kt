@@ -1,5 +1,5 @@
 object Day15 {
-    private val input = listOf(16,12,1,0,15,7,11)
+    private val input = listOf(16, 12, 1, 0, 15, 7, 11)
 
     fun part1(): Int = game().drop(2020 - 1).first()
 
@@ -14,10 +14,10 @@ object Day15 {
         }
         var last = input.last()
         while (true) {
-            val lastTurns = (lastSeen[last] ?: listOf()).filter { it != turn - 1 }
+            val lastTurns = lastSeen[last]?.filter { it != turn - 1 } ?: listOf()
             val next = if (lastTurns.isNotEmpty()) (turn - 1) - lastTurns.last() else 0
             yield(next)
-            lastSeen[next] = (lastSeen[next] ?: listOf()) + turn++
+            lastSeen[next] = (lastSeen[next]?.takeLast(1) ?: listOf()) + turn++
             last = next
         }
     }
