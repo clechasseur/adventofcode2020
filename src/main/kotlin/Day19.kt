@@ -5,10 +5,8 @@ object Day19 {
     private val messages = Day19Data.messages
 
     private val letterRuleRegex = """^(\d+): "(\w)"$""".toRegex()
-    private val proxyRuleRegex = """^(\d): (\d+)$""".toRegex()
-    private val dualRuleRegex = """^(\d+): (\d+) (\d+)$""".toRegex()
-    private val singleOrRuleRegex = """^(\d+): (\d+) \| (\d+)$""".toRegex()
-    private val dualOrRuleRegex = """^(\d+): (\d+) (\d+) \| (\d+) (\d+)$""".toRegex()
+    private val multiRuleRegex = """^(\d+): (\d+(?: \d+)*)$""".toRegex()
+    private val orRuleRegex = """^(\d+): (\d+(?: \d+)*) \| (\d+(?: \d+)*)$""".toRegex()
 
     fun part1(): Int {
         val rulesMap = rules.toRules()
@@ -31,23 +29,15 @@ object Day19 {
         override fun toString(rules: Map<Int, Rule>): String = letter.toString()
     }
 
-    private class ProxyRule(val sub: Int) : Rule {
-        override fun matches(message: String, rules: Map<Int, Rule>): Int? =
-            rules[sub]!!.matches(message, rules)
-
-        override fun toString(rules: Map<Int, Rule>): String = rules[sub]!!.toString(rules)
-    }
-
-    private class DualRule(val left: Int, val right: Int) : Rule {
+    private class MultiRule(val multi: List<Int>) : Rule {
         override fun matches(message: String, rules: Map<Int, Rule>): Int? {
-            val leftRule = rules[left]!!
-            val rightRule = rules[right]!!
-            val leftMatch = leftRule.matches(message, rules) ?: return null
-            return rightRule.matches(message.substring(leftMatch), rules)?.plus(leftMatch)
+            return multi.map { rules[it]!! }.fold(0) { acc, rule ->
+                rule.matches(message.substring(acc), rules)?.plus(acc) ?: return null
+            }
         }
 
         override fun toString(rules: Map<Int, Rule>): String =
-            "${rules[left]!!.toString(rules)}${rules[right]!!.toString(rules)}"
+            multi.joinToString("") { rules[it]!!.toString(rules) }
     }
 
     private class OrRule(val eitherThis: Rule, val orThat: Rule) : Rule {
@@ -60,10 +50,8 @@ object Day19 {
 
     private fun String.toRules(): Map<Int, Rule> = lines().associate { line -> when {
         letterRuleRegex.matches(line) -> line.toLetterRule()
-        proxyRuleRegex.matches(line) -> line.toProxyRule()
-        dualRuleRegex.matches(line) -> line.toDualRule()
-        singleOrRuleRegex.matches(line) -> line.toSingleOrRule()
-        dualOrRuleRegex.matches(line) -> line.toDualOrRule()
+        multiRuleRegex.matches(line) -> line.toMultiRule()
+        orRuleRegex.matches(line) -> line.toOrRule()
         else -> error("Not a valid rule: $line")
     } }
 
@@ -73,30 +61,18 @@ object Day19 {
         return rule.toInt() to LetterRule(letter.single())
     }
 
-    private fun String.toProxyRule(): Pair<Int, Rule> {
-        val match = proxyRuleRegex.matchEntire(this) ?: error("Not a proxy rule: $this")
-        val (rule, sub) = match.destructured
-        return rule.toInt() to ProxyRule(sub.toInt())
+    private fun String.toMultiRule(): Pair<Int, Rule> {
+        val match = multiRuleRegex.matchEntire(this) ?: error("Not a multi rule: $this")
+        val (rule, multi) = match.destructured
+        return rule.toInt() to MultiRule(multi.split(' ').map { it.toInt() })
     }
 
-    private fun String.toDualRule(): Pair<Int, Rule> {
-        val match = dualRuleRegex.matchEntire(this) ?: error("Not a dual rule: $this")
-        val (rule, left, right) = match.destructured
-        return rule.toInt() to DualRule(left.toInt(), right.toInt())
-    }
-
-    private fun String.toSingleOrRule(): Pair<Int, Rule> {
-        val match = singleOrRuleRegex.matchEntire(this) ?: error("Not an OR rule: $this")
-        val (rule, eitherThis, orThat) = match.destructured
-        return rule.toInt() to OrRule(ProxyRule(eitherThis.toInt()), ProxyRule(orThat.toInt()))
-    }
-
-    private fun String.toDualOrRule(): Pair<Int, Rule> {
-        val match = dualOrRuleRegex.matchEntire(this) ?: error("Not an OR rule: $this")
-        val (rule, eitherThisLeft, eitherThisRight, orThatLeft, orThatRight) = match.destructured
+    private fun String.toOrRule(): Pair<Int, Rule> {
+        val match = orRuleRegex.matchEntire(this) ?: error("Not an OR rule: $this")
+        val (rule, eitherThisMulti, orThatMulti) = match.destructured
         return rule.toInt() to OrRule(
-            DualRule(eitherThisLeft.toInt(), eitherThisRight.toInt()),
-            DualRule(orThatLeft.toInt(), orThatRight.toInt())
+            MultiRule(eitherThisMulti.split(' ').map { it.toInt() }),
+            MultiRule(orThatMulti.split(' ').map { it.toInt() })
         )
     }
 }
