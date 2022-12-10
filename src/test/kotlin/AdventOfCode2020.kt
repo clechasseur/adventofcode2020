@@ -228,7 +228,7 @@ class AdventOfCode2020 {
 
         @Test
         fun `day 19, part 2`() {
-            assertEquals(0, Day19.part2())
+            assertEquals(394, Day19.part2())
         }
     }
 }
