@@ -8,36 +8,23 @@ object Day20 {
 
     fun part1(): Long {
         val tiles = input.toTiles()
-        val firstTile = tiles.first()
-        tiles.asSequence().drop(1).flatMap { tile ->
-            tile.orientationSequence()
-        }.mapNotNull { tile ->
-            val dir = firstTile.canConnect(tile)
-            if (dir != null) tile to dir else null
-        }.forEach { (tile, direction) ->
-            println("${firstTile.id} -> $direction -> ${tile.id}")
-            println()
-            when (direction) {
-                Direction.UP -> {
-                    printTiles(tile)
-                    printTiles(firstTile)
+        val corners = tiles.map { tile ->
+            tile to Direction.values().mapNotNull { direction ->
+                tiles.asSequence().filter {
+                    it != tile
+                }.flatMap {
+                    it.orientationSequence()
+                }.firstOrNull {
+                    tile.canConnect(it, direction)
                 }
-                Direction.DOWN -> {
-                    printTiles(firstTile)
-                    printTiles(tile)
-                }
-                Direction.LEFT -> printTiles(tile, firstTile)
-                Direction.RIGHT -> printTiles(firstTile, tile)
-            }
+            }.count()
+        }.filter { (_, neighbours) ->
+            neighbours == 2
+        }.map { (tile, _) ->
+            tile
         }
-        return -1L
-    }
-
-    private fun printTiles(vararg tiles: Tile) {
-        tiles.first().lines.indices.forEach { x ->
-            println(tiles.joinToString(" ") { it.lines[x] })
-        }
-        println()
+        require(corners.size == 4) { "There's ${corners.size} corners?!?" }
+        return corners.fold(1L) { acc, tile -> acc * tile.id }
     }
 
     private data class Tile(val id: Long, val data: List<String>) {
@@ -63,9 +50,6 @@ object Day20 {
             Direction.DOWN -> lines.last() == tile.lines.first()
             Direction.LEFT -> columns.first() == tile.columns.last()
             Direction.RIGHT -> columns.last() == tile.columns.first()
-        }
-        fun canConnect(tile: Tile): Direction? = Direction.values().firstOrNull { direction ->
-            canConnect(tile, direction)
         }
     }
 
