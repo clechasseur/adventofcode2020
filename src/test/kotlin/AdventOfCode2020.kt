@@ -240,7 +240,7 @@ class AdventOfCode2020 {
 
         @Test
         fun `day 20, part 2`() {
-            assertEquals(0, Day20.part2())
+            assertEquals(2256, Day20.part2())
         }
     }
 }

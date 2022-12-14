@@ -8,6 +8,12 @@ object Day20 {
 
     private val idRegex = """^Tile (\d+):$""".toRegex()
 
+    private val seaMonster = """
+                          # 
+        #    ##    ##    ###
+         #  #  #  #  #  #   
+    """.trimIndent().lines()
+
     fun part1(): Long {
         val tiles = input.toTiles()
         val corners = tiles.map { tile ->
@@ -34,9 +40,13 @@ object Day20 {
         val firstTile = tiles.first()
         val quilt = buildQuilt(Quilt(firstTile), tiles - firstTile) ?: error("Could not build quilt")
         require(quilt.square) { "Final quilt is not a square" }
-        val bigTile = quilt.cropAll().toTile()
-        println(bigTile)
-        return -1
+        val bigTile = quilt.cropAll().toTile(id = 0L)
+        val numMonsters = countSeaMonsters(bigTile)
+        return bigTile.lines.sumBy { line ->
+            line.count { it == '#' }
+        } - seaMonster.sumBy { line ->
+            line.count { it == '#' }
+        } * numMonsters
     }
 
     private fun buildQuilt(quilt: Quilt, tiles: Set<Tile>): Quilt? = if (tiles.isEmpty()) {
@@ -55,6 +65,21 @@ object Day20 {
             }
         }.firstOrNull()
     }
+
+    private fun countSeaMonsters(bigTile: Tile): Int = bigTile.orientationSequence().map { tile ->
+        (tile.lines.indices.first..tile.lines.indices.last - seaMonster.size + 1).flatMap { y ->
+            (tile.lines.first().indices.first..tile.lines.first().indices.last - seaMonster.first().length + 1).map { x ->
+                val picture = tile.lines.subList(y, y + seaMonster.size).map { line ->
+                    line.substring(x, x + seaMonster.first().length)
+                }
+                picture.zip(seaMonster).all { (fromPic, fromMonster) ->
+                    fromPic.zip(fromMonster).all { (cFromPic, cFromMonster) ->
+                        cFromMonster == ' ' || cFromPic == cFromMonster
+                    }
+                }
+            }
+        }.count { it }
+    }.max()!!
 
     private data class Tile(val id: Long, val data: List<String>) {
         val lines: List<String>
@@ -118,7 +143,7 @@ object Day20 {
 
         fun cropAll(): Quilt = Quilt(tiles.mapValues { (_, tile) -> tile.crop() })
 
-        fun toTile(): Tile = Tile(id = 0, data = yIndices.flatMap { y ->
+        fun toTile(id: Long): Tile = Tile(id, yIndices.flatMap { y ->
             val tile = tiles[Pt(xIndices.first, y)]!!
             tile.lines.indices.map { tileY ->
                 xIndices.joinToString("") { x ->
