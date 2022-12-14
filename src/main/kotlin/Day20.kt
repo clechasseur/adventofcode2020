@@ -30,31 +30,30 @@ object Day20 {
     }
 
     fun part2(): Int {
-        var tiles = input.toTiles()
-        var quilts = listOf(Quilt(tiles.first()))
-        tiles = tiles.drop(1)
-        while (tiles.isNotEmpty()) {
-            val nextTile = tiles.first()
-            tiles = tiles.drop(1)
-            quilts = quilts.asSequence().flatMap { quilt ->
-                quilt.edges.asSequence().flatMap { pt ->
-                    nextTile.orientationSequence().mapNotNull { orientedTile ->
-                        quilt.trySew(pt, orientedTile)
+        val tiles = input.toTiles()
+        val firstTile = tiles.first()
+        val quilt = buildQuilt(Quilt(firstTile), tiles - firstTile) ?: error("Could not build quilt")
+        require(quilt.square) { "Final quilt is not a square" }
+        val bigTile = quilt.cropAll().toTile()
+        println(bigTile)
+        return -1
+    }
+
+    private fun buildQuilt(quilt: Quilt, tiles: Set<Tile>): Quilt? = if (tiles.isEmpty()) {
+        quilt
+    } else {
+        sequence {
+            tiles.asSequence().forEach { tile ->
+                quilt.edges.asSequence().forEach { edgePt ->
+                    tile.orientationSequence().mapNotNull { orientedTile ->
+                        val sewnQuilt = quilt.trySew(edgePt, orientedTile)
+                        if (sewnQuilt != null) buildQuilt(sewnQuilt, tiles - tile) else null
+                    }.forEach { builtQuilt ->
+                        yield(builtQuilt)
                     }
                 }
-            }.toList()
-        }
-        val quilt = quilts.first { it.square }
-        quilt.yIndices.forEach { y ->
-            val firstTile = quilt.tiles[Pt(quilt.xIndices.first, y)]!!
-            firstTile.lines.indices.forEach { tileY ->
-                println(quilt.xIndices.joinToString(" ") { x ->
-                    quilt.tiles[Pt(x, y)]!!.lines[tileY]
-                })
             }
-            println()
-        }
-        return -1
+        }.firstOrNull()
     }
 
     private data class Tile(val id: Long, val data: List<String>) {
@@ -64,8 +63,8 @@ object Day20 {
             data.indices.map { x -> data.joinToString("") { it[x].toString() } }
         }
 
-        fun flipVertically(): Tile = Tile(id, lines.reversed())
-        fun rotateClockwise(): Tile = Tile(id, lines.indices.map { x ->
+        fun flipVertically(): Tile = copy(data = lines.reversed())
+        fun rotateClockwise(): Tile = copy(data = lines.indices.map { x ->
             lines.indices.reversed().joinToString("") { y -> data[y][x].toString() }
         })
 
@@ -81,9 +80,15 @@ object Day20 {
             Direction.LEFT -> columns.first() == tile.columns.last()
             Direction.RIGHT -> columns.last() == tile.columns.first()
         }
+
+        fun crop(): Tile = copy(data = lines.drop(1).dropLast(1).map {
+            it.substring(1 until it.length - 1)
+        })
+
+        override fun toString(): String = lines.joinToString("\n")
     }
 
-    private class Quilt(val tiles: Map<Pt, Tile>) {
+    private data class Quilt(val tiles: Map<Pt, Tile>) {
         constructor(firstTile: Tile) : this(mapOf(Pt.ZERO to firstTile))
 
         val edges: List<Pt>
@@ -110,10 +115,21 @@ object Day20 {
             }
             return if (fits) Quilt(tiles + (pt to tile)) else null
         }
+
+        fun cropAll(): Quilt = Quilt(tiles.mapValues { (_, tile) -> tile.crop() })
+
+        fun toTile(): Tile = Tile(id = 0, data = yIndices.flatMap { y ->
+            val tile = tiles[Pt(xIndices.first, y)]!!
+            tile.lines.indices.map { tileY ->
+                xIndices.joinToString("") { x ->
+                    tiles[Pt(x, y)]!!.lines[tileY]
+                }
+            }
+        })
     }
 
-    private fun String.toTiles(): List<Tile> {
-        val tiles = mutableListOf<Tile>()
+    private fun String.toTiles(): Set<Tile> {
+        val tiles = mutableSetOf<Tile>()
         val toParse = lines()
         var i = 0
         while (i < toParse.size) {
