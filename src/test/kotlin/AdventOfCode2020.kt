@@ -243,4 +243,17 @@ class AdventOfCode2020 {
             assertEquals(2256, Day20.part2())
         }
     }
+
+    class Day21Puzzles {
+        @Test
+        fun `day 21, part 1`() {
+            assertEquals(2493, Day21.part1())
+        }
+
+        @Test
+        fun `day 21, part 2`() {
+            val expected = "kqv,jxx,zzt,dklgl,pmvfzk,tsnkknk,qdlpbt,tlgrhdh"
+            assertEquals(expected, Day21.part2())
+        }
+    }
 }
