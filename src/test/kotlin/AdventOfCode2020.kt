@@ -274,5 +274,11 @@ class AdventOfCode2020 {
         fun `day 23, part 1`() {
             assertEquals("43896725", Day23.part1())
         }
+
+        @Test
+        @Ignore("Never finishes")
+        fun `day 23, part 2`() {
+            assertEquals(0L, Day23.part2())
+        }
     }
 }

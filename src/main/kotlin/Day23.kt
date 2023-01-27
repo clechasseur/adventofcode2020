@@ -1,32 +1,51 @@
 object Day23 {
     private const val input = "589174263"
 
-    fun part1(): String = generateSequence(State(input.map { it.toString().toInt() })) { prevState ->
-        prevState.next()
-    }.elementAt(100).label
+    fun part1(): String {
+        val state = State(input.map { it.toString().toLong() })
+        state.moveMany(100)
+        return state.label
+    }
 
-    private class State(val cups: LinkedList<Int>, val currentCup: Int) {
-        constructor(cups: Iterable<Int>) : this(LinkedList(cups), cups.first())
+    fun part2(): Long {
+        val state = State(oneMillionCups())
+        state.moveMany(10_000_000)
+        return state.hiddenStars
+    }
+
+    private fun oneMillionCups(): List<Long> = input.map { it.toString().toLong() } + (10L..1_000_000L)
+
+    private class State(val cups: LinkedList<Long>, var currentCup: Long) {
+        constructor(cups: Iterable<Long>) : this(LinkedList(cups), cups.first())
 
         val label: String
-            get() = cups.find { it.value == 1 }!!.drop(1).joinToString("")
+            get() = cups.find { it.value == 1L }!!.drop(1).joinToString("")
 
-        fun next(): State {
-            val newCups = LinkedList(cups)
-            val currentNode = newCups.find { it.value == currentCup } ?: error("Cannot find current cup $currentCup")
-            val pickedUp = newCups.pickUpNext(currentNode, 3)
-            var destinationCup = currentCup - 1
-            var destinationNode = newCups.find { it.value == destinationCup }
-            while (destinationNode == null) {
-                if (destinationCup == 0) {
-                    destinationCup = 10
-                }
-                destinationCup--
-                require(destinationCup != currentCup) { "We wrapped around looking for destination cup" }
-                destinationNode = newCups.find { it.value == destinationCup }
+        val hiddenStars: Long
+            get() {
+                val oneCup = cups.find { it.value == 1L }!!
+                return oneCup.next!!.value * oneCup.next!!.next!!.value
             }
-            newCups.insertAfter(destinationNode, pickedUp)
-            return State(newCups, currentNode.next!!.value)
+
+        fun move() {
+            val currentNode = cups.find { it.value == currentCup } ?: error("Cannot find current cup $currentCup")
+            val pickedUp = cups.pickUpNext(currentNode, 3)
+            var destinationCup = currentCup - 1L
+            var destinationNode = cups.find { it.value == destinationCup }
+            while (destinationNode == null) {
+                destinationCup = if (destinationCup == 0L) {
+                    cups.maxBy { it.value }!!.value
+                } else {
+                    destinationCup - 1
+                }
+                require(destinationCup != currentCup) { "We wrapped around looking for destination cup" }
+                destinationNode = cups.find { it.value == destinationCup }
+            }
+            cups.insertAfter(destinationNode, pickedUp)
+            currentCup = currentNode.next!!.value
+        }
+        fun moveMany(n: Int) {
+            (0 until n).forEach { _ -> move() }
         }
     }
 
@@ -54,9 +73,10 @@ object Day23 {
             elements.forEach { add(it) }
         }
 
-        constructor(elements: LinkedList<T>) : this(elements.map { it.value })
-
         var head: Node<T>? = null
+            private set
+        var tail: Node<T>? = null
+        var size: Int = 0
             private set
 
         fun add(value: T) {
@@ -64,14 +84,13 @@ object Day23 {
             if (head == null) {
                 node.next = node
                 head = node
+                tail = node
             } else {
-                var last = head
-                while (last!!.next != head) {
-                    last = last.next
-                }
-                last.next = node
+                tail!!.next = node
                 node.next = head
+                tail = node
             }
+            size++
         }
 
         fun pickUpNext(node: Node<T>, n: Int): Node<T> {
@@ -81,12 +100,18 @@ object Day23 {
             lastPickedUp.next = pickedUp
             if (head in pickedUp) {
                 head = after
+                tail = node
             }
             node.next = after
+            size -= n
             return pickedUp
         }
 
         fun insertAfter(node: Node<T>, newNode: Node<T>) {
+            size += newNode.count()
+            if (tail == node) {
+                tail = newNode.last()
+            }
             newNode.last().next = node.next
             node.next = newNode
         }
