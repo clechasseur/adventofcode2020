@@ -276,9 +276,8 @@ class AdventOfCode2020 {
         }
 
         @Test
-        @Ignore("Never finishes")
         fun `day 23, part 2`() {
-            assertEquals(0L, Day23.part2())
+            assertEquals(2911418906L, Day23.part2())
         }
     }
 }

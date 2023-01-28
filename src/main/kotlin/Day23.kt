@@ -15,37 +15,41 @@ object Day23 {
 
     private fun oneMillionCups(): List<Long> = input.map { it.toString().toLong() } + (10L..1_000_000L)
 
-    private class State(val cups: LinkedList<Long>, var currentCup: Long) {
-        constructor(cups: Iterable<Long>) : this(LinkedList(cups), cups.first())
+    private class State(val cups: LinkedList<Long>) {
+        constructor(cups: Iterable<Long>) : this(LinkedList(cups))
+
+        val nodeMap = cups.nodeMap
+        val maxCup: Long = cups.maxBy { it.value }!!.value
 
         val label: String
-            get() = cups.find { it.value == 1L }!!.drop(1).joinToString("")
+            get() = nodeMap[1L]!!.drop(1).joinToString("")
 
         val hiddenStars: Long
             get() {
-                val oneCup = cups.find { it.value == 1L }!!
+                val oneCup = nodeMap[1L]!!
                 return oneCup.next!!.value * oneCup.next!!.next!!.value
             }
 
         fun move() {
-            val currentNode = cups.find { it.value == currentCup } ?: error("Cannot find current cup $currentCup")
+            val currentNode = cups.head!!
             val pickedUp = cups.pickUpNext(currentNode, 3)
-            var destinationCup = currentCup - 1L
-            var destinationNode = cups.find { it.value == destinationCup }
-            while (destinationNode == null) {
-                destinationCup = if (destinationCup == 0L) {
-                    cups.maxBy { it.value }!!.value
-                } else {
-                    destinationCup - 1
-                }
-                require(destinationCup != currentCup) { "We wrapped around looking for destination cup" }
-                destinationNode = cups.find { it.value == destinationCup }
+            var destinationCup = if (currentNode.value == 1L) {
+                maxCup
+            } else {
+                currentNode.value - 1L
             }
+            while (pickedUp.find { it.value == destinationCup } != null) {
+                destinationCup--
+                if (destinationCup == 0L) {
+                    destinationCup = maxCup
+                }
+            }
+            val destinationNode = nodeMap[destinationCup]!!
             cups.insertAfter(destinationNode, pickedUp)
-            currentCup = currentNode.next!!.value
+            cups.rotateTo(currentNode.next!!)
         }
         fun moveMany(n: Int) {
-            (0 until n).forEach { _ -> move() }
+            repeat(n) { move() }
         }
     }
 
@@ -69,29 +73,24 @@ object Day23 {
     }
 
     private class LinkedList<T>(elements: Iterable<T> = emptyList()) : Iterable<Node<T>> {
-        init {
-            elements.forEach { add(it) }
-        }
-
         var head: Node<T>? = null
             private set
-        var tail: Node<T>? = null
-        var size: Int = 0
-            private set
 
-        fun add(value: T) {
-            val node = Node(value)
-            if (head == null) {
-                node.next = node
-                head = node
-                tail = node
-            } else {
-                tail!!.next = node
-                node.next = head
-                tail = node
+        init {
+            val first = Node(elements.first())
+            first.next = first
+            var last = first
+            elements.asSequence().drop(1).forEach { element ->
+                val node = Node(element)
+                last.next = node
+                node.next = first
+                last = node
             }
-            size++
+            head = first
         }
+
+        val nodeMap: Map<T, Node<T>>
+            get() = associateBy { it.value }
 
         fun pickUpNext(node: Node<T>, n: Int): Node<T> {
             val pickedUp = node.next!!
@@ -100,20 +99,18 @@ object Day23 {
             lastPickedUp.next = pickedUp
             if (head in pickedUp) {
                 head = after
-                tail = node
             }
             node.next = after
-            size -= n
             return pickedUp
         }
 
         fun insertAfter(node: Node<T>, newNode: Node<T>) {
-            size += newNode.count()
-            if (tail == node) {
-                tail = newNode.last()
-            }
             newNode.last().next = node.next
             node.next = newNode
+        }
+
+        fun rotateTo(newHead: Node<T>) {
+            head = newHead
         }
 
         override fun iterator(): Iterator<Node<T>> = head?.iterator() ?: EmptyIterator()
