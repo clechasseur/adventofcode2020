@@ -280,4 +280,16 @@ class AdventOfCode2020 {
             assertEquals(2911418906L, Day23.part2())
         }
     }
+
+    class Day24Puzzles {
+        @Test
+        fun `day 24, part 1`() {
+            assertEquals(322, Day24.part1())
+        }
+
+        @Test
+        fun `day 24, part 2`() {
+            assertEquals(3831, Day24.part2())
+        }
+    }
 }
